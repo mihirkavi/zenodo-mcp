@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+"""Store, check or remove your Zenodo personal access token in the macOS Keychain.
+
+    zenodo-setup-token            # prompt (hidden), save, verify with Zenodo
+    zenodo-setup-token --status   # is a token stored? does Zenodo accept it?
+    zenodo-setup-token --remove   # delete it from the Keychain
+    ZENODO_SANDBOX=1 zenodo-setup-token   # same, for sandbox.zenodo.org
+
+Create the token at https://zenodo.org/account/settings/applications/tokens/new/
+with scopes deposit:write and deposit:actions. The token is typed into a hidden prompt
+(or a macOS dialog when no terminal is attached), passed to the Keychain on stdin, and never
+printed, logged or written to a file. Only its last 4 characters are shown.
+"""
+import getpass
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "server"))
+from zenodo_client import (ZenodoClient, ZenodoError, base_url, delete_token, store_token,  # noqa: E402
+                           token_status)
+
+
+def ask() -> str:
+    if sys.stdin.isatty():
+        print(f"Paste your Zenodo personal access token for {base_url()}. Typing is hidden; press Return.")
+        return getpass.getpass("Zenodo token: ").strip()
+    script = ('text returned of (display dialog "Paste your Zenodo personal access token for ' + base_url() +
+              '. It is saved only in your macOS Keychain." default answer "" with hidden answer '
+              'with title "Zenodo MCP setup" buttons {"Cancel", "Save"} default button "Save")')
+    r = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def verify() -> int:
+    try:
+        ZenodoClient().list_depositions(size=1)
+    except ZenodoError as e:
+        print(f"✗ {e}")
+        return 1
+    print(f"✓ {base_url()} accepted the token (deposit access OK).")
+    return 0
+
+
+def main() -> int:
+    args = sys.argv[1:]
+    if "--remove" in args:
+        print("Removed the Zenodo token from the Keychain." if delete_token() else "No Zenodo token was stored.")
+        return 0
+    if "--status" in args:
+        st = token_status()
+        if not st["stored"]:
+            print("No Zenodo token stored.")
+            return 1
+        print(f"Token stored in the {st['source']} (ends {st['fingerprint']}).")
+        return verify()
+    try:
+        token = ask()
+    except (EOFError, KeyboardInterrupt):
+        token = ""
+    if not token:
+        print("Nothing entered; cancelled.")
+        return 1
+    try:
+        store_token(token)
+    except ZenodoError as e:
+        print(f"✗ {e}")
+        return 1
+    print(f"Saved to the macOS Keychain (ends …{token[-4:]}).")
+    return verify()
+
+
+if __name__ == "__main__":
+    sys.exit(main())
