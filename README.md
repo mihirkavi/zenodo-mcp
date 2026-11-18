@@ -67,7 +67,7 @@ uv run --with mcp==2.3.0 python -m unittest discover -s tests   # offline tests,
 ## Status and limitations
 
 - Version 0.1. Searching, drafts, file upload, publishing and new versions use Zenodo's legacy deposit API (`/api/deposit/depositions`), which Zenodo still supports. Search uses `/api/records`.
-- Search, communities and licenses were tested against live Zenodo. The deposit tools work with a real token but have no automated tests against the live service; to try them, use the sandbox first.
+- Tested against live Zenodo: search, communities, licenses, and the full flow of creating a draft, uploading a file and publishing. There are no automated tests against the live service, so try changes on the sandbox first.
 - Not yet supported: community review requests through the newer InvenioRDM requests API, restricted-file access grants, and uploads over the 50 GB per-record limit.
 
 ## License
