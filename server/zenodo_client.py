@@ -184,7 +184,8 @@ class ZenodoClient:
         size = path.stat().st_size
         with path.open("rb") as fh:
             return self._request("PUT", f"{bucket_url}/{urllib.parse.quote(filename)}", data=fh,
-                                 headers={"Content-Type": "application/octet-stream"}  # bucket API rejects others, content_length=size)
+                                 headers={"Content-Type": "application/octet-stream"},  # bucket API rejects other types
+                                 content_length=size)
 
 
 def _http_error(e: urllib.error.HTTPError) -> str:
