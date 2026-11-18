@@ -6,7 +6,6 @@ The personal access token is read from ZENODO_TOKEN or the macOS Keychain
 from __future__ import annotations
 
 import json
-import mimetypes
 import os
 import subprocess
 import urllib.error
@@ -183,10 +182,9 @@ class ZenodoClient:
 
     def upload_file(self, bucket_url: str, path: Path, filename: str) -> dict:
         size = path.stat().st_size
-        ctype = mimetypes.guess_type(filename)[0] or "application/octet-stream"
         with path.open("rb") as fh:
             return self._request("PUT", f"{bucket_url}/{urllib.parse.quote(filename)}", data=fh,
-                                 headers={"Content-Type": ctype}, content_length=size)
+                                 headers={"Content-Type": "application/octet-stream"}  # bucket API rejects others, content_length=size)
 
 
 def _http_error(e: urllib.error.HTTPError) -> str:
